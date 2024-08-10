@@ -1,0 +1,50 @@
+# This Python 3 environment comes with many helpful analytics libraries installed
+# It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python
+# For example, here's several helpful packages to load
+
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+# Input data files are available in the read-only "../input/" directory
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+
+import os
+for dirname, _, filenames in os.walk('/kaggle/input'):
+    for filename in filenames:
+        print(os.path.join(dirname, filename))
+
+# You can write up to 20GB to the current directory (/kaggle/working/) that gets preserved as output when you create a version using "Save & Run All" 
+# You can also write temporary files to /kaggle/temp/, but they won't be saved outside of the current session
+
+import torch
+from torchvision import transforms
+from PIL import Image
+
+# Load a pre-trained YOLO model
+model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
+
+# Transformation pipeline
+transform = transforms.Compose([
+    transforms.Resize((640, 640)),
+    transforms.ToTensor()
+])
+
+# Function to classify image
+def classify_image(image_path):
+    # Load and transform the image
+    image = Image.open(image_path)
+    image = transform(image).unsqueeze(0)
+
+    # Perform inference
+    results = model(image)
+
+    # Get the predicted class
+    labels, conf, bbox = results.xyxyn[0][:, -1].tolist(), results.xyxyn[0][:, -2].tolist(), results.xyxyn[0][:, :-2].tolist()
+    predicted_class = labels[0]  # Take the first predicted label
+
+    return model.names[int(predicted_class)], conf[0]
+
+# Test the function with an example image
+image_path = ('/kaggle/input/dog-image/example_image.jpg')  # Replace with the path to your image
+predicted_class, confidence = classify_image(image_path)
+print(f"Predicted class: {predicted_class}, Confidence: {confidence:.2f}")
